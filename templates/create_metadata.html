@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Upload new File</title>
+	<script src="/static/jquery-1.9.1.min.js"></script>
+	<script src="/static/sha256.js"></script>
+	<script src="/static/json2.js"></script>
+</head>
+<body>
+<h1>Upload new File</h1>
+<form action="" method=post enctype=multipart/form-data>
+	<p><input id='uploader' type='file' name='files' />
+		<input type='submit' value='Upload' />
+</form>
+<output id="list"></output>
+<span id="status"></span>
+<script>
+	var bufferSize = 1024*512;
+	/*var reader = new FileReader();
+	reader.onloadend = function(data){
+		var chksum = CryptoJS.SHA256(reader.result.substring(37));
+		var data = reader.result.substring(37);
+		if(readPattern.length > 0){
+			var offset = readPattern.shift();
+
+
+			reader.readAsDataURL(chunk);
+		}
+	}
+	var readPattern = [];*/
+	var f = null;
+	var file1 = null;
+	function handleFileSelect(evt) {
+		var files = evt.target.files; // FileList object
+
+		// files is a FileList of File objects. List some properties.
+		var output = [];
+		for (var i = 0, f; f = files[i]; i++) {
+			output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+					f.size, ' bytes, last modified: ',
+					f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+					'</li>');
+		}
+		document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+
+		file1 = files[0];
+		for (var i = 0; f = files[i]; i++) {
+			console.log(f);
+			if(f.size <= bufferSize){
+				console.log("smaller than buffer size");
+				var chunk = readChunk(file1, 0, bufferSize);
+			} else {
+				console.log("larger than buffer size");
+				var y = 0;
+				for (y=0; y < f.size; y+=bufferSize) {
+					var chunk = readChunk(f, y, y+bufferSize);
+					var reader = new FileReader();
+					reader.onloadend = function(data){
+						console.log(CryptoJS.SHA256(data.target.result.substring(37)));
+					}
+					reader.readAsDataURL(chunk);
+
+					var fd = new FormData();
+					fd.append("chunk", chunk);
+					$.ajax({
+						type: 'POST',
+						headers: {'X-Filename:':file1.name},
+						url: '/upload/chunk/',
+						data: fd,
+						processData:false,
+						contentType: false,
+						async: true,
+						complete: function(data){
+						}
+					});
+				}
+			}
+		}
+	}
+
+	function readChunk(file, offset, length) {
+		return file.slice(offset, length);
+	}
+
+	document.getElementById('uploader').addEventListener('change', handleFileSelect, false);
+
+</script>
+</body>
+</html>
