@@ -1,7 +1,10 @@
 import os
 import sys
-from flask import Flask, request, redirect, url_for
+from flask import Flask, request, redirect, url_for, render_template
 from flask import send_from_directory
+import base64
+import pylzma
+import blake2
 
 class FlaskIOMain(object):
     
@@ -19,7 +22,7 @@ class FlaskIOMain(object):
             elif sys.argv[1] == "prod":
                 config_type='ProductionConfig'
         app = Flask(__name__)
-        app.config.from_object('conf.config.%s'%(config_type))
+        app.config.from_object('conf.config.{0:>s}'.format(config_type))
         app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
         
         @app.route('/', methods=['GET', 'POST'])
@@ -30,55 +33,22 @@ class FlaskIOMain(object):
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
                     return redirect(url_for('uploaded_file',
                                             filename=file.filename))
-            return '''
-                <!doctype html>
-                <title>Upload new File</title>
-                <h1>Upload new File</h1>
-                <form action="" method=post enctype=multipart/form-data>
-                  <p><input id='uploader' type='file' name='files' />
-                     <input type='submit' value='Upload' />
-                </form>
-                <output id="list"></output>
-                <script>
-  function handleFileSelect(evt) {
-    var files = evt.target.files; // FileList object
+            return render_template('sample_upload.html')
 
-    // files is a FileList of File objects. List some properties.
-    var output = [];
-    for (var i = 0, f; f = files[i]; i++) {
-      output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
-                  f.size, ' bytes, last modified: ',
-                  f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
-                  '</li>');
-    }
-    document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
-    var bufferSize = 1024*128;
-    for (var i = 0, f; f = files[i]; i++) {
-        if(f.size <= bufferSize){
-            console.log("smaller than buffer size");
-            console.log(readChunk(f, 0, f.size));
-        } else {
-            console.log("larger than buffer size");
-            var y = 0;
-            for (y=0; (y+bufferSize) < f.size; y+=bufferSize) {
-                console.log(y);
-                console.log(readChunk(f, y, y+bufferSize));
-            }
-            console.log(readChunk(f, y, f.size));
-        }
-    }
-  }
-  
-  function readChunk(file, offset, length) {
-    return file.slice(offset, length);
-  }
-
-  document.getElementById('uploader').addEventListener('change', handleFileSelect, false);
-</script>
-                '''
         @app.route('/uploads/<filename>')
         def uploaded_file(filename):
             return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+        @app.route('/upload/chunk/', methods=['POST'])
+        def upload_chunk():
+            b2hash = blake2.blake2s(request.data, hashSize=32, key="")
+            print request.data
+            byte_array = base64.b64decode(request.data)
+            print byte_array
+
+            b64data = pylzma.decompress(byte_array)
+            raw_data = base64.b64decode(b64data)
+            open('/tmp/{name}'.format(name=b2hash), 'wb')
                     
         app.run(app.config["HOST"], app.config["PORT"])
 
