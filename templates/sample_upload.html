@@ -4,7 +4,6 @@
 	<title>Upload new File</title>
 	<script src="/static/jquery-1.9.1.min.js"></script>
 	<script src="/static/sha256.js"></script>
-	<script src="/static/lzma.js"></script>
 	<script src="/static/json2.js"></script>
 </head>
 <body>
@@ -16,28 +15,7 @@
 <output id="list"></output>
 <span id="status"></span>
 <script>
-	var bufferSize = 1024*4096;
-	var my_lzma = new LZMA("/static/lzma_worker.js");
-	var reader = new FileReader();
-	reader.onloadend = function(data){
-		var chksum = CryptoJS.SHA256(reader.result.substring(37));
-		var data = reader.result.substring(37);
-		my_lzma.compress(data, 1, function(result) {
-			var u8 = new Uint8Array(result);
-			var b64data = btoa(String.fromCharCode.apply(null,u8));
-			console.log(b64data.length);
-		}, function(percent) {});
-		if(readPattern.length > 0){
-			var offset = readPattern.shift();
-			var offsetEnd;
-			//console.log(readPattern.length);
-			offsetEnd = offset + bufferSize;
-			var chunk = readChunk(file1, offset, offsetEnd);
-			console.log(chunk);
-			reader.readAsDataURL(chunk);
-		}
-	}
-	var readPattern = [];
+	var bufferSize = 1024*512;
 	var f = null;
 	var file1 = null;
 	function handleFileSelect(evt) {
@@ -54,43 +32,182 @@
 		document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
 
 		file1 = files[0];
-		for (var i = 0; f = files[i]; i++) {
+		/*for (var i = 0; f = files[i]; i++) {
 			console.log(f);
 			if(f.size <= bufferSize){
 				console.log("smaller than buffer size");
-				readPattern.push(0);
 			} else {
 				console.log("larger than buffer size");
 				var y = 0;
-				for (y=0; (y+bufferSize) < f.size; y+=bufferSize) {
-					readPattern.push(y);
-					//var chunk = readChunk(f, y, f.size);
-					//reader.readAsDataURL(chunk);
+				for (y=0; y < f.size; y+=bufferSize) {
+
 				}
-				readPattern.push(y);
-				//var chunk = readChunk(f, y, f.size);
-				//reader.readAsDataURL(chunk);
-				console.log(readPattern);
 			}
 		}
-		var offset = readPattern.shift();
-		var chunk = readChunk(file1, offset, bufferSize);
-		console.log(offset +"|"+ bufferSize);
-		reader.readAsDataURL(chunk);
-	}
-	function decompress(bytes){
-		var u8 = new Uint8Array(bytes);
-		console.log(btoa(String.fromCharCode.apply(null,u8)));
-		console.log((btoa(String.fromCharCode.apply(null,u8))).length);
-		console.log(JSON.stringify(u8).length);
-		my_lzma.decompress(bytes, function(result) {
-			console.log(CryptoJS.SHA256(result));
-		}, function(percent) {});
+		setInterval(handleFileChunks,100);*/
+		var dict = new backupbay.collections.Dictionary();
+		dict.set('file', file1);
+		var uploader = new backupbay.io.Uploader(dict);
+		uploader.uploadFile();
 	}
 
-	function readChunk(file, offset, length) {
-		return file.slice(offset, length);
-	}
+	var backupbay={};
+	(function( collections, $, undefined ) {
+		collections.Dictionary = function Dictionary() {
+			var self = {};
+			self.index = 0;
+			return{
+				constructor: collections.Dictionary,
+				add: function(key, value){
+					self.index += 1;
+					return this[key] = value;
+				},
+				set: function(key, value){
+					this[key] = value;
+				},
+				get: function(key){
+					return this[key];
+				},
+				remove: function(key){
+					delete this[key];
+				},
+				exist: function(key){
+					if(this[key]){
+						return true;
+					}
+					else{
+						return false;
+					}
+				},
+				keys: function(){
+					return this.getOwnPropertyNames;
+				},
+				getIndex: function(){
+					return self.index;
+				}
+			};
+		};
+	}(window.backupbay.collections = window.backupbay.collections || {}, $));
+
+	(function( errors, $, undefined ) {
+		errors.DictionaryException = function DictionaryException(message) {
+			this.message = message;
+			this.error = "DictionaryException";
+		};
+	}(window.backupbay.errors = window.backupbay.errors || {}, $));
+	backupbay.errors.DictionaryException.prototype = new Error();
+	backupbay.errors.DictionaryException.prototype.constructor = backupbay.errors.DictionaryException;
+
+	(function( io, $, undefined ) {
+		io.Uploader = function Uploader(map) {
+			if(map.constructor !== backupbay.collections.Dictionary){
+				throw new backupbay.errors.DictionaryException("Instance is not of type Dictionary");
+			}
+			if(!map.exist('file')){
+				throw new backupbay.errors.DictionaryException("Missing file");
+			}
+			var self = {};
+			self.file = map.get('file');
+			self.bufferSize = map.exist('bufferSize') ? map.get('bufferSize') : 1024 * 512;
+			self.url = map.exist('url') ? map.get('url') : '/upload/chunk';
+			self.currentOffset = 0;
+			self.numberOfUploads = 0;
+			self.percent = 0;
+			self.sumChunks = Math.ceil(self.file.size / self.bufferSize);
+			self.sumUploadedChunks = 0;
+			self.fileHash = null;
+
+			function getSHA256Hash(content){
+				var hashObj = new jsSHA(content, "TEXT");
+				return hashObj.getHash("SHA-256", "HEX");
+			}
+			function handleFileUpload(){
+				var chunk = PUBLIC.getNextChunk();
+				if(chunk == -1){
+					return 1;
+				}
+				var reader = new FileReader();
+				reader.onloadend = function(data){
+					PUBLIC.sendChunk(chunk, getSHA256Hash(data.target.result));
+				}
+				reader.readAsBinaryString(chunk);
+			}
+			function createFileMeta(){
+				self.Filehash = getSHA256Hash(self.file.name+self.file.size.toString());
+				$.ajax({
+					type: 'PUT',
+					url: '/create/metadata',
+					data: '{"name": "'+self.file.name+
+							'", "path": "'+'/olavgg/'+
+							'", "hash": "'+self.Filehash+
+							'", "size": '+self.file.size+'}',
+					processData:false,
+					contentType: false,
+					sync: true,
+					headers: {
+						"Authtoken":"test4153450"
+					},
+					error: function(){
+
+					},
+					success: function(data){
+						handleFileUpload();
+					}
+				});
+			}
+			function completeUpload(){
+
+			}
+			var PUBLIC = {
+				constructor: io.Uploader,
+				setFile: function(file){
+					self.file = file;
+				},
+				sendChunk: function(chunk, chunkHash){
+					var fd = new FormData();
+					fd.append("chunk", chunk);
+					$.ajax({
+						type: 'PUT',
+						url: self.url,
+						data: fd,
+						processData:false,
+						contentType: false,
+						async: true,
+						headers: {
+							"Authtoken":"test4153450",
+							"Chunkhash":chunkHash,
+							"Filehash":self.fileHash
+						},
+						/*beforeSend: function(){
+							if(self.numberOfUploads < 2){
+								handleFileUpload();
+								self.numberOfUploads +=1;
+							}
+						},*/
+						complete: function(data){
+							if(handleFileUpload() == 1){
+								completeUpload();
+							}
+						}
+					});
+				},
+				getNextChunk: function (){
+					if(self.file.size < self.currentOffset){
+						return -1;
+					}
+					var dataChunk = self.file.slice(
+							self.currentOffset,
+							self.currentOffset + self.bufferSize);
+					self.currentOffset += self.bufferSize;
+					return dataChunk;
+				},
+				uploadFile: function(){
+					createFileMeta();
+				}
+			};
+			return PUBLIC;
+		};
+	}(window.backupbay.io = window.backupbay.io || {}, $));
 
 	document.getElementById('uploader').addEventListener('change', handleFileSelect, false);
 

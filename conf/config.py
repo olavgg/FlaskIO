@@ -36,6 +36,7 @@ class Config(object):
     PROTOCOL = u'http'
     LOGFILE = u'debug.log'
     AUTH_TOKEN = u'test123456'
+    DBFILE = u'bb_filechunk.db'
     
     @staticmethod
     def set_app_password(password):
