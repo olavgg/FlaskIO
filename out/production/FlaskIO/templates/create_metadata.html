@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Create Metadata</title>
+</head>
+<body>
+<h1>Create Metadata</h1>
+<h2>Supported HTTP methods</h2>
+<ul>
+	<li>PUT</li>
+</ul>
+<h2>Requirements</h2>
+<p>Body should contain a json string with following keys:</p>
+<ul>
+	<li>name</li>
+	<li>path</li>
+	<li>hash</li>
+	<li>size</li>
+</ul>
+<h3>Example:</h3>
+<textarea disabled="true" style="height:110px;width:500px;overflow:hidden;">
+
+{
+	"name":"hello.txt",
+	"size":1364321,
+	"hash":"erkoghj54e9uty5iregjipetrgjipetnpihe5iotg345t53940",
+	"path":"/olavgg/hello.txt"
+}
+</textarea>
+<h2>Success</h2>
+<p>Returns http code 201.</p>
+<h2>Failure</h2>
+<p>Returns http code 500 and an error message.</p>
+</body>
+</html>

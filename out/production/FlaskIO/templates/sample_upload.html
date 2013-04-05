@@ -168,7 +168,8 @@
 			}
 			function updateUploadSpeed(){
 				var currentTime = new Date().getTime();
-				var duration = (currentTime - self.timeOfLastUpload) / 1000;
+				var duration = currentTime - self.timeOfLastUpload;
+				//var bitsUploaded = self.sumUploadedChunks * self.bufferSize;
 				self.uploadSpeed =
 					(Math.round(self.bufferSize / duration) / 1024).toFixed(2);
 				self.timeOfLastUpload = currentTime;

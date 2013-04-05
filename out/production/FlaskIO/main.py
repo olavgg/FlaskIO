@@ -61,8 +61,8 @@ class FlaskIOMain(object):
                 else:
                     try:
                         sql = """
-                        INSERT INTO file(name, path, size, file_hash)
-                        VALUES('{name}','{path}', {size}, '{hash}')
+                        INSERT INTO file(name, path, size, file_hash, complete)
+                        VALUES('{name}','{path}', {size}, '{hash}', 0)
                         """.format(
                             name = body['name'],
                             path = body['path'],
