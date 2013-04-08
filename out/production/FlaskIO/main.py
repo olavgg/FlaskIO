@@ -61,8 +61,8 @@ class FlaskIOMain(object):
                 else:
                     try:
                         sql = """
-                        INSERT INTO file(name, path, size, file_hash, complete)
-                        VALUES('{name}','{path}', {size}, '{hash}', 0)
+                        INSERT INTO file(name, path, size, file_hash)
+                        VALUES('{name}','{path}', {size}, '{hash}')
                         """.format(
                             name = body['name'],
                             path = body['path'],
@@ -72,7 +72,8 @@ class FlaskIOMain(object):
                         c.execute(sql)
                         FlaskIOMain.db.commit()
                     except Exception, e:
-                        errormsg = u"Unsuccessful database insert transaction:"\
+                        errormsg = \
+                            u"Unsuccessful database insert transaction:"\
                                    + str(e)
                         print errormsg
                         #log.exception(errormsg, self.__class__.__name__)
@@ -125,7 +126,7 @@ class FlaskIOMain(object):
                 return Response(
                     "Unsuccessful database insert transaction",
                     status=500, mimetype='text/plain')
-            if len(rows) > 0 and chash == sha256(data_blob).hexdigest():
+            if len(rows) > 0 and chash == sha256(data_blob.read(128)).hexdigest():
                 chunk = open('/tmp/{name}'.format(name=rows[0][0]), 'a')
                 chunk.write(data_blob)
                 chunk.close()

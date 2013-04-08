@@ -132,7 +132,7 @@
 				}
 				var reader = new FileReader();
 				reader.onloadend = function(data){
-					PUBLIC.sendChunk(chunk, getSHA256Hash(data.target.result));
+					PUBLIC.sendChunk(chunk, getSHA256Hash(data.target.result.substring(128)));
 				}
 				reader.readAsBinaryString(chunk);
 			}
@@ -168,8 +168,7 @@
 			}
 			function updateUploadSpeed(){
 				var currentTime = new Date().getTime();
-				var duration = currentTime - self.timeOfLastUpload;
-				//var bitsUploaded = self.sumUploadedChunks * self.bufferSize;
+				var duration = (currentTime - self.timeOfLastUpload) / 1000;
 				self.uploadSpeed =
 					(Math.round(self.bufferSize / duration) / 1024).toFixed(2);
 				self.timeOfLastUpload = currentTime;
@@ -201,13 +200,13 @@
 							"Chunkhash":chunkHash,
 							"Filehash":self.fileHash
 						},
-						/*beforeSend: function(){
-							if(self.numberOfUploads < 2){
-								handleFileUpload();
-								self.numberOfUploads +=1;
+						error: function(data){
+							var retryFunction = function(){
+								PUBLIC.sendChunk(chunk, chunkHash);
 							}
-						},*/
-						complete: function(data){
+							setTimeout(retryFunction, 3000);
+						},
+						success: function(data){
 							updateProgress();
 							if(handleFileUpload() == 1){
 								completeUpload();
@@ -235,7 +234,6 @@
 	}(window.backupbay.io = window.backupbay.io || {}, $));
 
 	document.getElementById('uploader').addEventListener('change', handleFileSelect, false);
-
 </script>
 </body>
 </html>

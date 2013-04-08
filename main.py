@@ -72,7 +72,8 @@ class FlaskIOMain(object):
                         c.execute(sql)
                         FlaskIOMain.db.commit()
                     except Exception, e:
-                        errormsg = u"Unsuccessful database insert transaction:"\
+                        errormsg = \
+                            u"Unsuccessful database insert transaction:"\
                                    + str(e)
                         print errormsg
                         #log.exception(errormsg, self.__class__.__name__)

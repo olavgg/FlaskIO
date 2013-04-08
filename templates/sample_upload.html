@@ -11,6 +11,7 @@
 <form action="" method=post enctype=multipart/form-data>
 	<p><input id='uploader' type='file' name='files' />
 		<input type='submit' value='Upload' />
+	<button id="pause">pause</button>
 </form>
 <output id="list"></output>
 <span>Per cent uploaded:</span><span id="status">0.00</span>%
@@ -20,6 +21,7 @@
 	var bufferSize = 1024*512;
 	var f = null;
 	var file1 = null;
+	var uploader;
 	function handleFileSelect(evt) {
 		var files = evt.target.files; // FileList object
 
@@ -49,7 +51,7 @@
 		setInterval(handleFileChunks,100);*/
 		var dict = new backupbay.collections.Dictionary();
 		dict.set('file', file1);
-		var uploader = new backupbay.io.Uploader(dict);
+		uploader = new backupbay.io.Uploader(dict);
 		uploader.uploadFile();
 	}
 
@@ -120,6 +122,7 @@
 			self.fileHash = null;
 			self.uploadSpeed = 0;
 			self.timeOfLastUpload = null;
+			self.isPauseEnabled = false;
 
 			function getSHA256Hash(content){
 				var hashObj = new jsSHA(content, "TEXT");
@@ -180,6 +183,16 @@
 				$('#status').html(self.percent);
 				$('#speed').html(self.uploadSpeed);
 			}
+			var continueUploading = function(){
+				if(self.isPauseEnabled == true){
+					setTimeout(continueUploading, 5000);
+				} else {
+					updateProgress();
+					if(handleFileUpload() == 1){
+						completeUpload();
+					}
+				}
+			}
 			var PUBLIC = {
 				constructor: io.Uploader,
 				setFile: function(file){
@@ -200,17 +213,14 @@
 							"Chunkhash":chunkHash,
 							"Filehash":self.fileHash
 						},
-						/*beforeSend: function(){
-							if(self.numberOfUploads < 2){
-								handleFileUpload();
-								self.numberOfUploads +=1;
+						error: function(data){
+							var retryFunction = function(){
+								PUBLIC.sendChunk(chunk, chunkHash);
 							}
-						},*/
-						complete: function(data){
-							updateProgress();
-							if(handleFileUpload() == 1){
-								completeUpload();
-							}
+							setTimeout(retryFunction, 5000);
+						},
+						success: function(data){
+							continueUploading();
 						}
 					});
 				},
@@ -227,14 +237,26 @@
 				uploadFile: function(){
 					self.timeOfLastUpload = new Date().getTime();
 					createFileMeta();
+				},
+				togglePause: function(){
+					if(self.isPauseEnabled == false){
+						self.isPauseEnabled = true;;
+					} else{
+						self.isPauseEnabled = false;
+					}
+					console.log(self.isPauseEnabled);
 				}
 			};
 			return PUBLIC;
 		};
 	}(window.backupbay.io = window.backupbay.io || {}, $));
-
 	document.getElementById('uploader').addEventListener('change', handleFileSelect, false);
-
+	$('#pause').click(function(){
+		if(uploader != null){
+			uploader.togglePause();
+		}
+		return false;
+	});
 </script>
 </body>
 </html>

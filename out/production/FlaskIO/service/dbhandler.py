@@ -13,8 +13,7 @@ class DBHandler:
                 name varchar NOT NULL,
                 path varchar NOT NULL,
                 size int NOT NULL,
-                file_hash varchar NOT NULL,
-                complete boolean NOT NULL
+                file_hash varchar NOT NULL
             )""")
         self.execute("CREATE UNIQUE INDEX 'idx_hash' ON 'file' ('file_hash')")
 
