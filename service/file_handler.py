@@ -8,6 +8,10 @@ Created on 4/9/13
 @Author: Olav Groenaas Gjerde
 """
 
+from flask import Response
+from flask import current_app
+from dbhandler import DBHandler
+
 
 class FileHandler(object):
 
@@ -22,6 +26,8 @@ class FileHandler(object):
         Constructor that needs a file path
         """
         self.file_path = file_path
+        self.db = DBHandler(current_app.config["DBFILE"])
+        self.cursor = self.db.getCursor()
 
     def write_chunk(self):
         """
@@ -30,11 +36,42 @@ class FileHandler(object):
         """
         pass
 
-    def create_file_metadata(self):
+    def create_file_metadata(self, body):
         """
         Create the file metadata.
         """
-        pass
+        if all(k in body for k in ('name','path','size','hash')):
+            c = self.db.getCursor()
+            if self.db.exists("file", "hash", body['hash']):
+                return Response(
+                    'File exists\n',
+                    status=200, mimetype='text/plain')
+            else:
+                try:
+                    sql = """
+                        INSERT INTO file(name, path, size, file_hash)
+                        VALUES('{name}','{path}', {size}, '{hash}')
+                        """.format(
+                        name = body['name'],
+                        path = body['path'],
+                        hash = body['hash'],
+                        size = body['size'])
+                    print sql
+                    c.execute(sql)
+                    self.db.commit()
+                except Exception, e:
+                    errormsg = \
+                        u"Unsuccessful database insert transaction:" \
+                        + str(e)
+                    print errormsg
+                    #log.exception(errormsg, self.__class__.__name__)
+                    return Response(
+                        'Unsuccessful database insert transaction\n',
+                        status=500, mimetype='text/plain')
+            return Response('', status=201, mimetype='text/plain')
+        return Response(
+            'Missing data in JSON\n',
+            status=500, mimetype='text/plain')
 
     def move_file(self):
         """

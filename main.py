@@ -50,38 +50,7 @@ class FlaskIOMain(object):
                 body = json.loads(request.data)
             except ValueError, e:
                 return str(e)+"\n", 500
-            if all(k in body for k in ('name','path','size','hash')):
-                c = FlaskIOMain.db.getCursor()
-                if FlaskIOMain.db.exists("file", "hash", body['hash']):
-                    return Response(
-                        'File exists\n',
-                        status=200, mimetype='text/plain')
-                else:
-                    try:
-                        sql = """
-                        INSERT INTO file(name, path, size, file_hash)
-                        VALUES('{name}','{path}', {size}, '{hash}')
-                        """.format(
-                            name = body['name'],
-                            path = body['path'],
-                            hash = body['hash'],
-                            size = body['size'])
-                        print sql
-                        c.execute(sql)
-                        FlaskIOMain.db.commit()
-                    except Exception, e:
-                        errormsg = \
-                            u"Unsuccessful database insert transaction:"\
-                                   + str(e)
-                        print errormsg
-                        #log.exception(errormsg, self.__class__.__name__)
-                        return Response(
-                            'Unsuccessful database insert transaction\n',
-                            status=500, mimetype='text/plain')
-                return Response('', status=201, mimetype='text/plain')
-            return Response(
-                'Missing data in JSON\n',
-                status=500, mimetype='text/plain')
+
 
         @app.route('/complete/upload', methods=["POST"])
         def complete_upload():
