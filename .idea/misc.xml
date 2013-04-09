@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="CopyrightManager" default="">
-    <module2copyright />
-  </component>
+  <component name="CppTools.Loader" reportImplicitCastToBool="false" reportNameReferencedOnce="false" version="3" compilerSelect="AUTO" />
+  <component name="IdProvider" IDEtalkID="B097F309CD8FB83B7F7A01A0E7078ED3" />
   <component name="ProjectKey">
     <option name="state" value="https://github.com/olavgg/FlaskIO.git" />
   </component>

@@ -3,6 +3,8 @@ import sys
 from flask import Flask, request, redirect, url_for, render_template, Response
 from hashlib import sha256
 from service.dbhandler import DBHandler
+from service.file_handler import FileHandler
+
 import json
 
 class FlaskIOMain(object):
@@ -49,7 +51,8 @@ class FlaskIOMain(object):
             try:
                 body = json.loads(request.data)
             except ValueError, e:
-                return str(e)+"\n", 500
+                return Response((e)+"\n", status=500, mimetype='text/plain')
+            fh = FileHandler()
 
 
         @app.route('/complete/upload', methods=["POST"])
