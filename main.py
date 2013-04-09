@@ -1,8 +1,6 @@
 import os
 import sys
 from flask import Flask, request, redirect, url_for, render_template, Response
-from flask import send_from_directory
-import base64
 from hashlib import sha256
 from service.dbhandler import DBHandler
 import json
@@ -85,26 +83,23 @@ class FlaskIOMain(object):
                 'Missing data in JSON\n',
                 status=500, mimetype='text/plain')
 
-        @app.route('/complete/metadata/', methods=["GET"])
-        def complete_metadata():
+        @app.route('/complete/upload', methods=["POST"])
+        def complete_upload():
             body = json.loads(request.data)
-            print body['path']
-            if FlaskIOMain.db.exists("file", "name", body['name']):
-                return "file exists", 200
-            else:
-                try:
-                    sql = """
-                        DELETE file WHERE file_hash LIKE '{hash}'
-                        """.format(name = body['hash'])
-                    print sql
-                    FlaskIOMain.cursor.execute(sql)
-                    FlaskIOMain.db.commit()
-                except Exception, e:
-                    errormsg = u"Unsuccessful database insert transaction:" + str(e)
-                    print errormsg
-                    #log.exception(errormsg, self.__class__.__name__)
-                    return "Unsuccessful database insert transaction", 500
-            return "", 201
+            print body
+            try:
+                sql = "DELETE FROM file WHERE file_hash LIKE '{hash}'".format(
+                    hash = body['hash'])
+                print sql
+                FlaskIOMain.cursor.execute(sql)
+                FlaskIOMain.db.commit()
+            except Exception, e:
+                description = u"Unsuccessful database delete transaction:"
+                errormsg =  description + str(e)
+                print errormsg
+                #log.exception(errormsg, self.__class__.__name__)
+                return Response(description, status=500, mimetype='text/plain')
+            return Response('', status=202, mimetype='text/plain')
 
         @app.route('/upload/chunk', methods=['PUT'])
         def upload_chunk():

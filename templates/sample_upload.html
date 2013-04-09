@@ -36,19 +36,6 @@
 		document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
 
 		file1 = files[0];
-		/*for (var i = 0; f = files[i]; i++) {
-			console.log(f);
-			if(f.size <= bufferSize){
-				console.log("smaller than buffer size");
-			} else {
-				console.log("larger than buffer size");
-				var y = 0;
-				for (y=0; y < f.size; y+=bufferSize) {
-
-				}
-			}
-		}
-		setInterval(handleFileChunks,100);*/
 		var dict = new backupbay.collections.Dictionary();
 		dict.set('file', file1);
 		uploader = new backupbay.io.Uploader(dict);
@@ -129,13 +116,13 @@
 				return hashObj.getHash("SHA-256", "HEX");
 			}
 			function handleFileUpload(){
-				var chunk = PUBLIC.getNextChunk();
+				var chunk = getNextChunk();
 				if(chunk == -1){
 					return 1;
 				}
 				var reader = new FileReader();
 				reader.onloadend = function(data){
-					PUBLIC.sendChunk(chunk, getSHA256Hash(data.target.result));
+					sendChunk(chunk, getSHA256Hash(data.target.result));
 				}
 				reader.readAsBinaryString(chunk);
 			}
@@ -163,7 +150,22 @@
 				});
 			}
 			function completeUpload(){
+				$.ajax({
+					type: 'POST',
+					url: '/complete/upload',
+					data: '{"hash": "'+self.fileHash+'"}',
+					processData:false,
+					contentType: false,
+					sync: true,
+					headers: {
+						"Authtoken":"test4153450"
+					},
+					error: function(){
 
+					},
+					success: function(data){
+					}
+				});
 			}
 			function updatePercent(){
 				self.percent = (100 / self.sumChunks) * self.sumUploadedChunks;
@@ -184,55 +186,53 @@
 				$('#speed').html(self.uploadSpeed);
 			}
 			var continueUploading = function(){
-				if(self.isPauseEnabled == true){
-					setTimeout(continueUploading, 5000);
-				} else {
+				if(self.isPauseEnabled == false){
 					updateProgress();
 					if(handleFileUpload() == 1){
 						completeUpload();
 					}
 				}
 			}
+			function sendChunk(chunk, chunkHash){
+				var fd = new FormData();
+				fd.append("chunk", chunk);
+				$.ajax({
+					type: 'PUT',
+					url: self.url,
+					data: fd,
+					processData:false,
+					contentType: false,
+					async: true,
+					headers: {
+						"Authtoken":"test4153450",
+						"Chunkhash":chunkHash,
+						"Filehash":self.fileHash
+					},
+					error: function(data){
+						var retryFunction = function(){
+							sendChunk(chunk, chunkHash);
+						}
+						setTimeout(retryFunction, 5000);
+					},
+					success: function(data){
+						continueUploading();
+					}
+				});
+			}
+			function getNextChunk(){
+				if(self.file.size < self.currentOffset){
+					return -1;
+				}
+				var dataChunk = self.file.slice(
+						self.currentOffset,
+						self.currentOffset + self.bufferSize);
+				self.currentOffset += self.bufferSize;
+				return dataChunk;
+			}
 			var PUBLIC = {
 				constructor: io.Uploader,
 				setFile: function(file){
 					self.file = file;
-				},
-				sendChunk: function(chunk, chunkHash){
-					var fd = new FormData();
-					fd.append("chunk", chunk);
-					$.ajax({
-						type: 'PUT',
-						url: self.url,
-						data: fd,
-						processData:false,
-						contentType: false,
-						async: true,
-						headers: {
-							"Authtoken":"test4153450",
-							"Chunkhash":chunkHash,
-							"Filehash":self.fileHash
-						},
-						error: function(data){
-							var retryFunction = function(){
-								PUBLIC.sendChunk(chunk, chunkHash);
-							}
-							setTimeout(retryFunction, 5000);
-						},
-						success: function(data){
-							continueUploading();
-						}
-					});
-				},
-				getNextChunk: function (){
-					if(self.file.size < self.currentOffset){
-						return -1;
-					}
-					var dataChunk = self.file.slice(
-							self.currentOffset,
-							self.currentOffset + self.bufferSize);
-					self.currentOffset += self.bufferSize;
-					return dataChunk;
 				},
 				uploadFile: function(){
 					self.timeOfLastUpload = new Date().getTime();
@@ -240,11 +240,11 @@
 				},
 				togglePause: function(){
 					if(self.isPauseEnabled == false){
-						self.isPauseEnabled = true;;
+						self.isPauseEnabled = true;
 					} else{
 						self.isPauseEnabled = false;
+						continueUploading();
 					}
-					console.log(self.isPauseEnabled);
 				}
 			};
 			return PUBLIC;
