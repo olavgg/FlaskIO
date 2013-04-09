@@ -40,7 +40,7 @@ class FileHandler(object):
         """
         Create the file metadata.
         """
-        if all(k in body for k in ('name','path','size','hash')):
+        if all(k in body for k in ('name', 'path', 'size', 'hash')):
             c = self.db.getCursor()
             if self.db.exists("file", "hash", body['hash']):
                 return Response(
