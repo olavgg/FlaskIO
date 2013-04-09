@@ -34,5 +34,4 @@ nosetests.xml
 .project
 .pydevproject
 *.iml
-.idea*
 *.db
