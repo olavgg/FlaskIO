@@ -23,25 +23,6 @@
 	var f = null;
 	var file1 = null;
 	var uploader;
-	function handleFileSelect(evt) {
-		var files = evt.target.files; // FileList object
-
-		// files is a FileList of File objects. List some properties.
-		var output = [];
-		for (var i = 0, f; f = files[i]; i++) {
-			output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
-					f.size, ' bytes, last modified: ',
-					f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
-					'</li>');
-		}
-		document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
-
-		file1 = files[0];
-		var dict = new backupbay.collections.Dictionary();
-		dict.set('file', file1);
-		uploader = new backupbay.io.Uploader(dict);
-		uploader.uploadFile();
-	}
 
 	var backupbay={};
 	(function( collections, $, undefined ) {
@@ -113,7 +94,9 @@
 			self.isPauseEnabled = false;
 
 			function getSHA1Hash(content){
+				//noinspection JSPotentiallyInvalidConstructorUsage
 				var hashObj = new jsSHA(content, "TEXT");
+				//noinspection JSUnresolvedFunction
 				return hashObj.getHash("SHA-1", "HEX");
 			}
 			function handleFileUpload(){
@@ -124,8 +107,9 @@
 				var reader = new FileReader();
 				reader.onloadend = function(data){
 					sendChunk(chunk, getSHA1Hash(data.target.result));
-				}
+				};
 				reader.readAsBinaryString(chunk);
+				return 0;
 			}
 			function createFileMeta(){
 				self.fileHash = getSHA1Hash(self.file.name+self.file.size.toString());
@@ -143,9 +127,8 @@
 						"Authtoken":"test4153450"
 					},
 					error: function(){
-
 					},
-					success: function(data){
+					success: function(){
 						handleFileUpload();
 					}
 				});
@@ -193,7 +176,7 @@
 						completeUpload();
 					}
 				}
-			}
+			};
 			function sendChunk(chunk, chunkHash){
 				var fd = new FormData();
 				fd.append("chunk", chunk);
@@ -209,13 +192,13 @@
 						"Chunkhash":chunkHash,
 						"Filehash":self.fileHash
 					},
-					error: function(data){
+					error: function(){
 						var retryFunction = function(){
 							sendChunk(chunk, chunkHash);
-						}
+						};
 						setTimeout(retryFunction, 5000);
 					},
-					success: function(data){
+					success: function(){
 						continueUploading();
 					}
 				});
@@ -230,11 +213,8 @@
 				self.currentOffset += self.bufferSize;
 				return dataChunk;
 			}
-			var PUBLIC = {
+			return {
 				constructor: io.Uploader,
-				setFile: function(file){
-					self.file = file;
-				},
 				uploadFile: function(){
 					self.timeOfLastUpload = new Date().getTime();
 					createFileMeta();
@@ -248,7 +228,6 @@
 					}
 				}
 			};
-			return PUBLIC;
 		};
 	}(window.backupbay.io = window.backupbay.io || {}, $));
 	document.getElementById('uploader').addEventListener('change', handleFileSelect, false);
@@ -258,6 +237,26 @@
 		}
 		return false;
 	});
+
+	function handleFileSelect(evt) {
+		var files = evt.target.files; // FileList object
+
+		// files is a FileList of File objects. List some properties.
+		var output = [];
+		for (var i = 0, f; f = files[i]; i++) {
+			output.push('<li><strong>', escape(f.name), '</strong> (', f.type || 'n/a', ') - ',
+					f.size, ' bytes, last modified: ',
+					f.lastModifiedDate ? f.lastModifiedDate.toLocaleDateString() : 'n/a',
+					'</li>');
+		}
+		document.getElementById('list').innerHTML = '<ul>' + output.join('') + '</ul>';
+
+		file1 = files[0];
+		var dict = new backupbay.collections.Dictionary();
+		dict.set('file', file1);
+		uploader = new backupbay.io.Uploader(dict);
+		uploader.uploadFile();
+	}
 </script>
 </body>
 </html>
