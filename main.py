@@ -1,7 +1,7 @@
 import os
 import sys
 from flask import Flask, request, redirect, url_for, render_template, Response
-from hashlib import sha256, sha1
+from hashlib import sha1
 from service.dbhandler import DBHandler
 from service.file_handler import FileHandler
 

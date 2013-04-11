@@ -112,7 +112,7 @@
 			self.timeOfLastUpload = null;
 			self.isPauseEnabled = false;
 
-			function getSHA256Hash(content){
+			function getSHA1Hash(content){
 				var hashObj = new jsSHA(content, "TEXT");
 				return hashObj.getHash("SHA-1", "HEX");
 			}
@@ -123,12 +123,12 @@
 				}
 				var reader = new FileReader();
 				reader.onloadend = function(data){
-					sendChunk(chunk, getSHA256Hash(data.target.result));
+					sendChunk(chunk, getSHA1Hash(data.target.result));
 				}
 				reader.readAsBinaryString(chunk);
 			}
 			function createFileMeta(){
-				self.fileHash = getSHA256Hash(self.file.name+self.file.size.toString());
+				self.fileHash = getSHA1Hash(self.file.name+self.file.size.toString());
 				$.ajax({
 					type: 'PUT',
 					url: '/create/metadata',
