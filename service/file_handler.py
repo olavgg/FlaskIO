@@ -21,11 +21,11 @@ class FileHandler(object):
     to its specified path.
     """
 
-    def __init__(self, file_path):
+    def __init__(self, body):
         """
         Constructor that needs a file path
         """
-        self.file_path = file_path
+        self.body = body
         self.db = DBHandler(current_app.config["DBFILE"])
         self.cursor = self.db.getCursor()
 
@@ -36,13 +36,13 @@ class FileHandler(object):
         """
         pass
 
-    def create_file_metadata(self, body):
+    def create_file_metadata(self):
         """
         Create the file metadata.
         """
-        if all(k in body for k in ('name', 'path', 'size', 'hash')):
+        if all(k in self.body for k in ('name', 'path', 'size', 'hash')):
             c = self.db.getCursor()
-            if self.db.exists("file", "hash", body['hash']):
+            if self.db.exists("file", "hash", self.body['hash']):
                 return Response(
                     'File exists\n',
                     status=200, mimetype='text/plain')
@@ -52,10 +52,10 @@ class FileHandler(object):
                         INSERT INTO file(name, path, size, file_hash)
                         VALUES('{name}','{path}', {size}, '{hash}')
                         """.format(
-                        name = body['name'],
-                        path = body['path'],
-                        hash = body['hash'],
-                        size = body['size'])
+                        name = self.body['name'],
+                        path = self.body['path'],
+                        hash = self.body['hash'],
+                        size = self.body['size'])
                     print sql
                     c.execute(sql)
                     self.db.commit()

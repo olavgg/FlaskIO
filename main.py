@@ -1,7 +1,7 @@
 import os
 import sys
 from flask import Flask, request, redirect, url_for, render_template, Response
-from hashlib import sha256
+from hashlib import sha256, sha1
 from service.dbhandler import DBHandler
 from service.file_handler import FileHandler
 
@@ -52,8 +52,8 @@ class FlaskIOMain(object):
                 body = json.loads(request.data)
             except ValueError, e:
                 return Response((e)+"\n", status=500, mimetype='text/plain')
-            fh = FileHandler()
-
+            fh = FileHandler(body)
+            return fh.create_file_metadata()
 
         @app.route('/complete/upload', methods=["POST"])
         def complete_upload():
@@ -93,7 +93,7 @@ class FlaskIOMain(object):
                 return Response(
                     "Unsuccessful database insert transaction",
                     status=500, mimetype='text/plain')
-            if len(rows) > 0 and chash == sha256(data_blob).hexdigest():
+            if len(rows) > 0 and chash == sha1(data_blob).hexdigest():
                 chunk = open('/tmp/{name}'.format(name=rows[0][0]), 'a')
                 chunk.write(data_blob)
                 chunk.close()

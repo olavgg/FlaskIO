@@ -4,6 +4,7 @@
 	<title>Upload new File</title>
 	<script src="/static/jquery-1.9.1.min.js"></script>
 	<script src="/static/sha256.js"></script>
+	<script src="/static/sha1.js"></script>
 	<script src="/static/json2.js"></script>
 </head>
 <body>
@@ -113,7 +114,7 @@
 
 			function getSHA256Hash(content){
 				var hashObj = new jsSHA(content, "TEXT");
-				return hashObj.getHash("SHA-256", "HEX");
+				return hashObj.getHash("SHA-1", "HEX");
 			}
 			function handleFileUpload(){
 				var chunk = getNextChunk();
